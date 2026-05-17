@@ -13,6 +13,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<Hls | null>(null);
+  const lastClickTime = useRef<number>(0);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -48,6 +49,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         setState('idle');
+        // HLS 加载完成后自动播放
+        video.play().catch(err => {
+          console.warn("Autoplay was prevented:", err);
+        });
       });
 
       hls.on(Hls.Events.ERROR, (event, data) => {
@@ -59,6 +64,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
       });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = url;
+      // 原生支持 HLS 的浏览器（如 Safari）监听 canplay 事件后播放
+      const onCanPlay = () => {
+        video.play().catch(err => {
+          console.warn("Autoplay was prevented:", err);
+        });
+      };
+      video.addEventListener('canplay', onCanPlay, { once: true });
     } else {
       setState('error');
       setErrorMsg('您的浏览器不支持HLS播放');
@@ -146,6 +158,20 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
     }
   };
 
+  const handleVideoClick = (e: React.MouseEvent | React.TouchEvent) => {
+    const now = Date.now();
+    const timeSinceLastClick = now - lastClickTime.current;
+    
+    if (timeSinceLastClick < 300) {
+      // 双击 - 切换全屏
+      toggleFullscreen();
+    } else {
+      // 单击 - 切换播放/暂停
+      togglePlay();
+    }
+    lastClickTime.current = now;
+  };
+
   const seek = (time: number) => {
     if (videoRef.current) {
       videoRef.current.currentTime = time;
@@ -194,7 +220,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
         className="w-full h-full object-contain"
         playsInline
         webkit-playsinline
-        onClick={togglePlay}
+        onClick={handleVideoClick}
       />
 
       {state === 'loading' && (

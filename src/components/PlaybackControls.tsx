@@ -61,13 +61,19 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
     };
   }, [isPlaying]);
 
-  const handleMouseMove = () => {
+  const handleUserActivity = () => {
     resetControlsTimer();
   };
 
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
+    let clientX: number;
+    if ('touches' in e) {
+      clientX = e.touches[0].clientX;
+    } else {
+      clientX = e.clientX;
+    }
     const rect = e.currentTarget.getBoundingClientRect();
-    const percent = (e.clientX - rect.left) / rect.width;
+    const percent = (clientX - rect.left) / rect.width;
     onSeek(percent * duration);
   };
 
@@ -83,8 +89,10 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
   return (
     <div
       className="absolute inset-0 flex flex-col justify-end"
-      onMouseMove={handleMouseMove}
+      onMouseMove={handleUserActivity}
       onMouseLeave={() => isPlaying && setShowControls(false)}
+      onTouchStart={handleUserActivity}
+      onClick={handleUserActivity}
     >
       <div
         className={`transition-opacity duration-300 ${
@@ -93,7 +101,11 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
       >
         <div className="bg-gradient-to-t from-black/90 via-black/60 to-transparent p-4 pt-12">
           <div className="space-y-4">
-            <div className="relative w-full h-2 bg-gray-700/50 rounded-full cursor-pointer group" onClick={handleSeek}>
+            <div 
+              className="relative w-full h-2 bg-gray-700/50 rounded-full cursor-pointer group select-none"
+              onClick={handleSeek}
+              onTouchStart={handleSeek}
+            >
               <div
                 className="absolute top-0 left-0 h-full bg-[#6c63ff] rounded-full transition-all duration-100"
                 style={{ width: `${progress}%` }}
