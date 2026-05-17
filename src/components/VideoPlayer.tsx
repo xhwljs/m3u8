@@ -20,6 +20,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [state, setState] = useState<PlayerState>('loading');
   const [errorMsg, setErrorMsg] = useState<string>('');
+  const [volume, setVolume] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
 
   const initializePlayer = useCallback(() => {
     const video = videoRef.current;
@@ -62,6 +64,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
       setErrorMsg('您的浏览器不支持HLS播放');
     }
   }, [url]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video) {
+      video.volume = volume;
+      video.muted = isMuted;
+    }
+  }, [volume, isMuted]);
 
   useEffect(() => {
     initializePlayer();
@@ -163,6 +173,20 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
     initializePlayer();
   };
 
+  const handleMuteToggle = () => {
+    setIsMuted(!isMuted);
+    if (!isMuted) {
+      setVolume(0);
+    } else {
+      setVolume(1);
+    }
+  };
+
+  const handleVolumeChange = (newVolume: number) => {
+    setVolume(newVolume);
+    setIsMuted(newVolume === 0);
+  };
+
   return (
     <div ref={containerRef} className="relative w-full bg-black group">
       <video
@@ -202,6 +226,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
         onSeek={seek}
         onFullscreen={toggleFullscreen}
         isFullscreen={isFullscreen}
+        volume={volume}
+        isMuted={isMuted}
+        onVolumeChange={handleVolumeChange}
+        onMuteToggle={handleMuteToggle}
       />
     </div>
   );
