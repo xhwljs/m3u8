@@ -52,7 +52,7 @@ export const PlayerPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#e8ecf1] flex flex-col">
       {!isLandscape && (
-        <div className="p-4 flex items-center justify-between bg-[#e8ecf1] z-10">
+        <div className="p-4 flex items-center justify-between bg-[#e8ecf1] z-10 flex-shrink-0">
           <NeumorphicButton onClick={() => navigate('/')} className="p-3">
             <ArrowLeft size={24} className="text-gray-600" />
           </NeumorphicButton>
@@ -66,12 +66,12 @@ export const PlayerPage: React.FC = () => {
         </div>
       )}
 
-      <div className={`${isLandscape ? "flex-1" : "aspect-video w-full"} ${isLoading ? "opacity-0" : "opacity-100"} transition-opacity duration-300`}>
+      <div className={`flex-shrink-0 ${isLandscape ? "flex-1" : "aspect-video w-full"} ${isLoading ? "opacity-0" : "opacity-100"} transition-opacity duration-300`}>
         <VideoPlayer url={decodeURIComponent(url)} />
       </div>
 
       {!isLandscape && (
-        <div className="p-4 flex-1">
+        <div className="p-4 flex-1 overflow-hidden">
           <NeumorphicCard className="h-full p-5">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-2 h-2 bg-[#6c63ff] rounded-full animate-pulse" />

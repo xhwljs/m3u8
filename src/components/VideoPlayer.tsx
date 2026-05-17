@@ -15,6 +15,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
   const hlsRef = useRef<Hls | null>(null);
   const lastClickTime = useRef<number>(0);
   const autoplayAttempted = useRef<boolean>(false);
+  const handlersRef = useRef<{[key: string]: () => void}>({});
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -23,10 +24,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
   const [state, setState] = useState<PlayerState>('loading');
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [volume, setVolume] = useState(1);
-  const [isMuted, setIsMuted] = useState(true); // 开始时就静音
+  const [isMuted, setIsMuted] = useState(true);
   const [playbackRate, setPlaybackRate] = useState(1);
 
-  // 尝试播放函数
   const attemptPlay = useCallback(() => {
     const video = videoRef.current;
     if (!video || autoplayAttempted.current) return;
@@ -34,7 +34,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
     autoplayAttempted.current = true;
     console.log('Attempting to autoplay...');
     
-    // 确保静音
     video.muted = true;
     video.volume = 0;
     setIsMuted(true);
@@ -54,12 +53,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
     const video = videoRef.current;
     if (!video) return;
 
-    // 重置状态
     autoplayAttempted.current = false;
     setState('loading');
     setErrorMsg('');
     
-    // 预先设置静音
     video.muted = true;
     video.volume = 0;
     setIsMuted(true);
@@ -81,7 +78,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
       hls.loadSource(url);
       hls.attachMedia(video);
 
-      // 多个事件都尝试播放
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         console.log('HLS manifest parsed');
         setState('idle');
@@ -112,38 +108,51 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
     const video = videoRef.current;
     if (!video) return;
 
-    // 绑定多个事件来尝试播放
-    const events = ['canplay', 'canplaythrough', 'loadeddata', 'loadedmetadata'] as const;
-    
-    events.forEach((event) => {
-      video.addEventListener(event, () => {
-        console.log(`Video event: ${event}`);
-        attemptPlay();
-      }, { once: true });
-    });
-
-    video.addEventListener('timeupdate', () => setCurrentTime(video.currentTime));
-    video.addEventListener('loadedmetadata', () => setDuration(video.duration));
-    video.addEventListener('play', () => { setIsPlaying(true); setState('playing'); });
-    video.addEventListener('pause', () => { setIsPlaying(false); setState('paused'); });
-    video.addEventListener('waiting', () => setState('loading'));
-    video.addEventListener('playing', () => setState('playing'));
-    video.addEventListener('error', () => {
+    const handleTimeUpdate = () => setCurrentTime(video.currentTime);
+    const handleLoadedMetadata = () => setDuration(video.duration);
+    const handlePlay = () => { setIsPlaying(true); setState('playing'); };
+    const handlePause = () => { setIsPlaying(false); setState('paused'); };
+    const handleWaiting = () => setState('loading');
+    const handlePlaying = () => setState('playing');
+    const handleError = () => {
       setState('error');
       setErrorMsg('播放出错');
-    });
+    };
+
+    const handleCanPlay = () => {
+      console.log('Video event: canplay');
+      attemptPlay();
+    };
+
+    handlersRef.current = {
+      handleTimeUpdate,
+      handleLoadedMetadata,
+      handlePlay,
+      handlePause,
+      handleWaiting,
+      handlePlaying,
+      handleError,
+      handleCanPlay,
+    };
+
+    video.addEventListener('timeupdate', handleTimeUpdate);
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('play', handlePlay);
+    video.addEventListener('pause', handlePause);
+    video.addEventListener('waiting', handleWaiting);
+    video.addEventListener('playing', handlePlaying);
+    video.addEventListener('error', handleError);
+    video.addEventListener('canplay', handleCanPlay, { once: true });
 
     return () => {
-      video.removeEventListener('timeupdate', () => setCurrentTime(video.currentTime));
-      video.removeEventListener('loadedmetadata', () => setDuration(video.duration));
-      video.removeEventListener('play', () => { setIsPlaying(true); setState('playing'); });
-      video.removeEventListener('pause', () => { setIsPlaying(false); setState('paused'); });
-      video.removeEventListener('waiting', () => setState('loading'));
-      video.removeEventListener('playing', () => setState('playing'));
-      video.removeEventListener('error', () => {
-        setState('error');
-        setErrorMsg('播放出错');
-      });
+      video.removeEventListener('timeupdate', handleTimeUpdate);
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('play', handlePlay);
+      video.removeEventListener('pause', handlePause);
+      video.removeEventListener('waiting', handleWaiting);
+      video.removeEventListener('playing', handlePlaying);
+      video.removeEventListener('error', handleError);
+      video.removeEventListener('canplay', handleCanPlay);
     };
   }, [attemptPlay]);
 
@@ -255,7 +264,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
   };
 
   return (
-    <div ref={containerRef} className="relative w-full bg-black group">
+    <div ref={containerRef} className="relative w-full h-full bg-black group">
       <video
         ref={videoRef}
         className="w-full h-full object-contain"
