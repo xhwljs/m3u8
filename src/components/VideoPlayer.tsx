@@ -56,12 +56,17 @@ export const VideoPlayerWithRef = forwardRef<VideoPlayerRef, VideoPlayerProps>(
         hlsRef.current = null;
       }
 
+      // 检测浏览器原生 HLS 支持
       if (video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = props.url;
       } else if (Hls.isSupported()) {
         const hls = new Hls({
           enableWorker: true,
           lowLatencyMode: true,
+          // 添加 CORS 支持
+          xhrSetup: (xhr) => {
+            xhr.withCredentials = false;
+          },
         });
         hlsRef.current = hls;
 
@@ -71,13 +76,34 @@ export const VideoPlayerWithRef = forwardRef<VideoPlayerRef, VideoPlayerProps>(
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           setIsLoading(false);
           if (props.autoPlay) {
-            video.play().catch(() => {});
+            video.play().catch((err) => {
+              console.log('自动播放失败:', err);
+            });
           }
         });
 
         hls.on(Hls.Events.ERROR, (event, data) => {
+          console.error('HLS Error:', data);
           if (data.fatal) {
-            const errorMsg = `HLS Error: ${data.type} - ${data.details}`;
+            let errorMsg = '视频加载失败，请检查链接是否正确';
+            
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                errorMsg = '网络错误：无法加载视频，请检查链接是否正确或网络连接';
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                errorMsg = '媒体错误：视频格式不支持或文件损坏';
+                break;
+              case Hls.ErrorTypes.KEY_SYSTEM_ERROR:
+                errorMsg = '密钥错误：该视频已加密，不支持播放';
+                break;
+              case Hls.ErrorTypes.MUX_ERROR:
+                errorMsg = 'MUX错误：视频解析失败';
+                break;
+              default:
+                errorMsg = `加载错误：${data.details || '未知错误'}`;
+            }
+            
             setError(errorMsg);
             props.onError?.(errorMsg);
             setIsLoading(false);
@@ -91,8 +117,9 @@ export const VideoPlayerWithRef = forwardRef<VideoPlayerRef, VideoPlayerProps>(
       }
 
       const handleCanPlay = () => setIsLoading(false);
-      const handleError = () => {
-        const errorMsg = '视频加载失败';
+      const handleError = (e: Event) => {
+        console.error('Video error event:', e);
+        const errorMsg = '视频加载失败，请检查链接是否正确';
         setError(errorMsg);
         props.onError?.(errorMsg);
         setIsLoading(false);
@@ -133,8 +160,9 @@ export const VideoPlayerWithRef = forwardRef<VideoPlayerRef, VideoPlayerProps>(
           ref={videoRef}
           className="w-full h-full object-contain"
           playsInline
-          webkit-playsInline
+          webkit-playsinline="true"
           controls={false}
+          preload="auto"
         />
         
         {isLoading && (
@@ -145,9 +173,10 @@ export const VideoPlayerWithRef = forwardRef<VideoPlayerRef, VideoPlayerProps>(
 
         {error && !isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/80 p-4">
-            <div className="text-white text-center">
-              <p className="text-red-500 mb-2">播放出错</p>
+            <div className="text-white text-center max-w-[90%]">
+              <p className="text-red-400 mb-2 font-semibold">播放出错</p>
               <p className="text-sm text-gray-300">{error}</p>
+              <p className="text-xs text-gray-500 mt-2">提示：请确保链接是有效的 M3U8 格式</p>
             </div>
           </div>
         )}
