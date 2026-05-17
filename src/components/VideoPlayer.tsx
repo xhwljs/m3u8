@@ -24,6 +24,43 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
 
+  const tryPlay = useCallback((video: HTMLVideoElement) => {
+    console.log("Starting autoplay attempt...");
+    
+    // 策略1：先静音播放（最可能成功）
+    const originalMuted = isMuted;
+    const originalVolume = volume;
+    
+    // 临时设置静音和音量
+    video.muted = true;
+    video.volume = 0;
+    
+    video.play().then(() => {
+      console.log("Autoplay successful (muted)");
+      setState('playing');
+      setIsPlaying(true);
+      
+      // 尝试恢复音量
+      if (!originalMuted) {
+        setTimeout(() => {
+          try {
+            video.muted = false;
+            video.volume = originalVolume;
+            setIsMuted(false);
+            setVolume(originalVolume);
+          } catch (e) {
+            console.warn("Could not unmute after autoplay:", e);
+          }
+        }, 200);
+      }
+    }).catch(err => {
+      console.warn("Autoplay failed:", err);
+      // 恢复原来的状态
+      video.muted = originalMuted;
+      video.volume = originalVolume;
+    });
+  }, [isMuted, volume]);
+
   const initializePlayer = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -49,10 +86,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         setState('idle');
-        // HLS 加载完成后自动播放
-        video.play().catch(err => {
-          console.warn("Autoplay was prevented:", err);
-        });
+        console.log("HLS manifest parsed, trying to play");
+        tryPlay(video);
       });
 
       hls.on(Hls.Events.ERROR, (event, data) => {
@@ -66,16 +101,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
       video.src = url;
       // 原生支持 HLS 的浏览器（如 Safari）监听 canplay 事件后播放
       const onCanPlay = () => {
-        video.play().catch(err => {
-          console.warn("Autoplay was prevented:", err);
-        });
+        console.log("Video can play, trying to play");
+        tryPlay(video);
       };
       video.addEventListener('canplay', onCanPlay, { once: true });
     } else {
       setState('error');
       setErrorMsg('您的浏览器不支持HLS播放');
     }
-  }, [url]);
+  }, [url, tryPlay]);
 
   useEffect(() => {
     const video = videoRef.current;
