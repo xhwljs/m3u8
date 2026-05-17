@@ -1,57 +1,80 @@
-# React + TypeScript + Vite
+# M3U8 播放器
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+一个现代化、移动端优先的 M3U8 视频播放器，融合了扁平化与新拟态（Neumorphism）设计风格。
 
-Currently, two official plugins are available:
+## 🌟 特性
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- ✨ **新拟态设计** - 精致的 Neumorphism UI 风格
+- 📱 **移动端优先** - 专为手机端优化的体验
+- 🎬 **HLS 播放** - 支持播放 M3U8 流媒体
+- 📋 **播放历史** - 自动保存历史记录
+- 📱 **横竖屏适配** - 自动响应屏幕方向变化
+- 🔄 **全屏播放** - 支持全屏观看
+- 📦 **零后端依赖** - 纯前端应用
 
-## Expanding the ESLint configuration
+## 🛠️ 技术栈
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- React 18 + TypeScript
+- Tailwind CSS
+- HLS.js
+- React Router DOM
+- Vite
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+## 🚀 快速开始
+
+### 1. 安装依赖
+
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 2. 启动开发服务器
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config({
-  extends: [
-    // other configs...
-    // Enable lint rules for React
-    reactX.configs['recommended-typescript'],
-    // Enable lint rules for React DOM
-    reactDom.configs.recommended,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+```bash
+npm run dev
 ```
+
+### 3. 构建生产版本
+
+```bash
+npm run build
+```
+
+### 4. 预览生产构建
+
+```bash
+npm run preview
+```
+
+## 📱 功能说明
+
+### 首页
+- 输入 M3U8 链接播放
+- 提供示例视频供测试
+- 显示历史播放记录
+- 支持删除历史记录
+
+### 播放页
+- 播放/暂停控制
+- 进度条拖动
+- 时间显示
+- 全屏播放
+- 横竖屏自动适配
+
+## 📋 使用示例链接
+
+播放器提供了一些示例视频供测试：
+- Big Buck Bunny
+- Sintel
+
+## 📖 Android Termux 部署
+
+详细的 Android Termux 部署指南请查看 [TERMUX_DEPLOY.md](./TERMUX_DEPLOY.md)。
+
+## 🤝 贡献
+
+欢迎提交 Issue 和 Pull Request！
+
+## 📄 许可证
+
+MIT License

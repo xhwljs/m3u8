@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Hls from 'hls.js';
 import { PlaybackControls } from './PlaybackControls';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 
 interface VideoPlayerProps {
   url: string;
@@ -21,7 +21,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
   const [state, setState] = useState<PlayerState>('loading');
   const [errorMsg, setErrorMsg] = useState<string>('');
 
-  useEffect(() => {
+  const initializePlayer = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
 
@@ -36,6 +36,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
       const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: true,
+        maxBufferLength: 30,
+        maxMaxBufferLength: 60,
       });
       hlsRef.current = hls;
 
@@ -59,6 +61,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
       setState('error');
       setErrorMsg('您的浏览器不支持HLS播放');
     }
+  }, [url]);
+
+  useEffect(() => {
+    initializePlayer();
 
     return () => {
       if (hlsRef.current) {
@@ -66,7 +72,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
         hlsRef.current = null;
       }
     };
-  }, [url]);
+  }, [initializePlayer]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -148,6 +154,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
     }
   };
 
+  const retry = () => {
+    if (videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.removeAttribute('src');
+      videoRef.current.load();
+    }
+    initializePlayer();
+  };
+
   return (
     <div ref={containerRef} className="relative w-full bg-black group">
       <video
@@ -168,7 +183,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-20 p-6 text-center">
           <AlertCircle className="w-12 h-12 text-red-400 mb-4" />
           <p className="text-white text-lg font-medium mb-2">播放失败</p>
-          <p className="text-gray-400 text-sm">{errorMsg}</p>
+          <p className="text-gray-400 text-sm mb-4">{errorMsg}</p>
+          <button
+            onClick={retry}
+            className="flex items-center gap-2 bg-[#6c63ff] hover:bg-[#5a52e6] text-white px-6 py-3 rounded-full transition-colors"
+          >
+            <RefreshCw size={18} />
+            重试
+          </button>
         </div>
       )}
 
