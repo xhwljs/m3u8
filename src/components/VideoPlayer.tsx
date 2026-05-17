@@ -24,6 +24,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(true); // 开始时就静音
+  const [playbackRate, setPlaybackRate] = useState(1);
 
   // 尝试播放函数
   const attemptPlay = useCallback(() => {
@@ -162,8 +163,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
     if (video) {
       video.muted = isMuted;
       video.volume = isMuted ? 0 : volume;
+      video.playbackRate = playbackRate;
     }
-  }, [volume, isMuted]);
+  }, [volume, isMuted, playbackRate]);
+
+  const handlePlaybackRateChange = (rate: number) => {
+    setPlaybackRate(rate);
+  };
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -291,6 +297,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
         isMuted={isMuted}
         onVolumeChange={handleVolumeChange}
         onMuteToggle={handleMuteToggle}
+        playbackRate={playbackRate}
+        onPlaybackRateChange={handlePlaybackRateChange}
       />
     </div>
   );

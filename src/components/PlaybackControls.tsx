@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Pause, Maximize, Minimize, Volume2, VolumeX, Rewind, FastForward } from 'lucide-react';
+import { Play, Pause, Maximize, Minimize, Volume2, VolumeX, Rewind, FastForward, Gauge } from 'lucide-react';
 
 interface PlaybackControlsProps {
   isPlaying: boolean;
@@ -13,6 +13,8 @@ interface PlaybackControlsProps {
   isMuted: boolean;
   onVolumeChange: (volume: number) => void;
   onMuteToggle: () => void;
+  playbackRate: number;
+  onPlaybackRateChange: (rate: number) => void;
 }
 
 const formatTime = (seconds: number): string => {
@@ -21,6 +23,8 @@ const formatTime = (seconds: number): string => {
   const secs = Math.floor(seconds % 60);
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 };
+
+const playbackRates = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
 export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
   isPlaying,
@@ -34,8 +38,11 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
   isMuted,
   onVolumeChange,
   onMuteToggle,
+  playbackRate,
+  onPlaybackRateChange,
 }) => {
   const [showControls, setShowControls] = useState(true);
+  const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
@@ -86,6 +93,18 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
     onVolumeChange(parseFloat(e.target.value));
   };
 
+  const toggleSpeedMenu = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowSpeedMenu(!showSpeedMenu);
+    resetControlsTimer();
+  };
+
+  const selectSpeed = (rate: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    onPlaybackRateChange(rate);
+    setShowSpeedMenu(false);
+  };
+
   return (
     <div
       className="absolute inset-0 flex flex-col justify-end"
@@ -101,8 +120,7 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
       >
         <div className="bg-gradient-to-t from-black/90 via-black/60 to-transparent p-4 pt-12">
           <div className="space-y-4">
-            <div 
-              className="relative w-full h-2 bg-gray-700/50 rounded-full cursor-pointer group select-none"
+            <div className="relative w-full h-2 bg-gray-700/50 rounded-full cursor-pointer group select-none"
               onClick={handleSeek}
               onTouchStart={handleSeek}
             >
@@ -117,7 +135,7 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
             </div>
 
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 <button
                   onClick={() => handleSkip(-10)}
                   className="min-h-[44px] min-w-[44px] flex items-center justify-center text-white hover:scale-110 transition-transform p-2"
@@ -141,7 +159,7 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
                   <FastForward size={22} />
                 </button>
 
-                <div className="flex items-center gap-2 ml-2">
+                <div className="flex items-center gap-2 ml-1">
                   <button
                     onClick={onMuteToggle}
                     className="min-h-[32px] min-w-[32px] flex items-center justify-center text-white hover:scale-110 transition-transform"
@@ -155,23 +173,55 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
                     step="0.01"
                     value={isMuted ? 0 : volume}
                     onChange={handleVolumeChange}
-                    className="w-20 h-1 bg-gray-600 rounded-full appearance-none cursor-pointer slider"
+                    className="w-16 h-1 bg-gray-600 rounded-full appearance-none cursor-pointer slider"
                   />
                 </div>
               </div>
 
-              <div className="text-white text-sm font-mono flex gap-2 items-center">
-                <span>{formatTime(currentTime)}</span>
-                <span className="text-gray-400">/</span>
-                <span>{formatTime(duration)}</span>
-              </div>
+              <div className="flex items-center gap-4">
+                {/* 播放速度控制 */}
+                <div className="relative">
+                  <button
+                    onClick={toggleSpeedMenu}
+                    className="min-h-[44px] min-w-[44px] flex items-center justify-center text-white hover:scale-110 transition-transform gap-1"
+                    title="播放速度"
+                  >
+                    <Gauge size={20} />
+                    <span className="text-sm font-medium">{playbackRate}x</span>
+                  </button>
+                  
+                  {showSpeedMenu && (
+                    <div className="absolute bottom-full right-0 mb-2 bg-black/90 rounded-lg overflow-hidden shadow-xl border border-white/10">
+                      {playbackRates.map((rate) => (
+                        <button
+                          key={rate}
+                          onClick={(e) => selectSpeed(rate, e)}
+                          className={`w-full px-4 py-2 text-sm text-left transition-colors ${
+                            playbackRate === rate 
+                              ? 'bg-[#6c63ff] text-white' 
+                              : 'text-white hover:bg-white/10'
+                          }`}
+                        >
+                          {rate}x
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-              <button
-                onClick={onFullscreen}
-                className="min-h-[44px] min-w-[44px] flex items-center justify-center text-white hover:scale-110 transition-transform"
-              >
-                {isFullscreen ? <Minimize size={24} /> : <Maximize size={24} />}
-              </button>
+                <div className="text-white text-sm font-mono flex gap-2 items-center">
+                  <span>{formatTime(currentTime)}</span>
+                  <span className="text-gray-400">/</span>
+                  <span>{formatTime(duration)}</span>
+                </div>
+
+                <button
+                  onClick={onFullscreen}
+                  className="min-h-[44px] min-w-[44px] flex items-center justify-center text-white hover:scale-110 transition-transform"
+                >
+                  {isFullscreen ? <Minimize size={24} /> : <Maximize size={24} />}
+                </button>
+              </div>
             </div>
           </div>
         </div>
