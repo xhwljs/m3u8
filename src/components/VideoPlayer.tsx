@@ -14,6 +14,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const lastClickTime = useRef<number>(0);
+  const autoplayAttempted = useRef<boolean>(false);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -22,51 +23,46 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
   const [state, setState] = useState<PlayerState>('loading');
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [volume, setVolume] = useState(1);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true); // 开始时就静音
 
-  const tryPlay = useCallback((video: HTMLVideoElement) => {
-    console.log("Starting autoplay attempt...");
+  // 尝试播放函数
+  const attemptPlay = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || autoplayAttempted.current) return;
     
-    // 策略1：先静音播放（最可能成功）
-    const originalMuted = isMuted;
-    const originalVolume = volume;
+    autoplayAttempted.current = true;
+    console.log('Attempting to autoplay...');
     
-    // 临时设置静音和音量
+    // 确保静音
     video.muted = true;
     video.volume = 0;
+    setIsMuted(true);
+    setVolume(0);
     
     video.play().then(() => {
-      console.log("Autoplay successful (muted)");
+      console.log('✅ Autoplay successful!');
       setState('playing');
       setIsPlaying(true);
-      
-      // 尝试恢复音量
-      if (!originalMuted) {
-        setTimeout(() => {
-          try {
-            video.muted = false;
-            video.volume = originalVolume;
-            setIsMuted(false);
-            setVolume(originalVolume);
-          } catch (e) {
-            console.warn("Could not unmute after autoplay:", e);
-          }
-        }, 200);
-      }
-    }).catch(err => {
-      console.warn("Autoplay failed:", err);
-      // 恢复原来的状态
-      video.muted = originalMuted;
-      video.volume = originalVolume;
+    }).catch((err) => {
+      console.warn('❌ Autoplay failed:', err);
+      setState('idle');
     });
-  }, [isMuted, volume]);
+  }, []);
 
   const initializePlayer = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
 
+    // 重置状态
+    autoplayAttempted.current = false;
     setState('loading');
     setErrorMsg('');
+    
+    // 预先设置静音
+    video.muted = true;
+    video.volume = 0;
+    setIsMuted(true);
+    setVolume(0);
 
     if (Hls.isSupported()) {
       if (hlsRef.current) {
@@ -84,10 +80,16 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
       hls.loadSource(url);
       hls.attachMedia(video);
 
+      // 多个事件都尝试播放
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        console.log('HLS manifest parsed');
         setState('idle');
-        console.log("HLS manifest parsed, trying to play");
-        tryPlay(video);
+        attemptPlay();
+      });
+
+      hls.on(Hls.Events.FRAG_LOADED, () => {
+        console.log('First fragment loaded');
+        attemptPlay();
       });
 
       hls.on(Hls.Events.ERROR, (event, data) => {
@@ -99,25 +101,50 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
       });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = url;
-      // 原生支持 HLS 的浏览器（如 Safari）监听 canplay 事件后播放
-      const onCanPlay = () => {
-        console.log("Video can play, trying to play");
-        tryPlay(video);
-      };
-      video.addEventListener('canplay', onCanPlay, { once: true });
     } else {
       setState('error');
       setErrorMsg('您的浏览器不支持HLS播放');
     }
-  }, [url, tryPlay]);
+  }, [url, attemptPlay]);
 
   useEffect(() => {
     const video = videoRef.current;
-    if (video) {
-      video.volume = volume;
-      video.muted = isMuted;
-    }
-  }, [volume, isMuted]);
+    if (!video) return;
+
+    // 绑定多个事件来尝试播放
+    const events = ['canplay', 'canplaythrough', 'loadeddata', 'loadedmetadata'] as const;
+    
+    events.forEach((event) => {
+      video.addEventListener(event, () => {
+        console.log(`Video event: ${event}`);
+        attemptPlay();
+      }, { once: true });
+    });
+
+    video.addEventListener('timeupdate', () => setCurrentTime(video.currentTime));
+    video.addEventListener('loadedmetadata', () => setDuration(video.duration));
+    video.addEventListener('play', () => { setIsPlaying(true); setState('playing'); });
+    video.addEventListener('pause', () => { setIsPlaying(false); setState('paused'); });
+    video.addEventListener('waiting', () => setState('loading'));
+    video.addEventListener('playing', () => setState('playing'));
+    video.addEventListener('error', () => {
+      setState('error');
+      setErrorMsg('播放出错');
+    });
+
+    return () => {
+      video.removeEventListener('timeupdate', () => setCurrentTime(video.currentTime));
+      video.removeEventListener('loadedmetadata', () => setDuration(video.duration));
+      video.removeEventListener('play', () => { setIsPlaying(true); setState('playing'); });
+      video.removeEventListener('pause', () => { setIsPlaying(false); setState('paused'); });
+      video.removeEventListener('waiting', () => setState('loading'));
+      video.removeEventListener('playing', () => setState('playing'));
+      video.removeEventListener('error', () => {
+        setState('error');
+        setErrorMsg('播放出错');
+      });
+    };
+  }, [attemptPlay]);
 
   useEffect(() => {
     initializePlayer();
@@ -132,37 +159,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
 
   useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
-
-    const handleTimeUpdate = () => setCurrentTime(video.currentTime);
-    const handleLoadedMetadata = () => setDuration(video.duration);
-    const handlePlay = () => { setIsPlaying(true); setState('playing'); };
-    const handlePause = () => { setIsPlaying(false); setState('paused'); };
-    const handleWaiting = () => setState('loading');
-    const handlePlaying = () => setState('playing');
-    const handleError = () => {
-      setState('error');
-      setErrorMsg('播放出错');
-    };
-
-    video.addEventListener('timeupdate', handleTimeUpdate);
-    video.addEventListener('loadedmetadata', handleLoadedMetadata);
-    video.addEventListener('play', handlePlay);
-    video.addEventListener('pause', handlePause);
-    video.addEventListener('waiting', handleWaiting);
-    video.addEventListener('playing', handlePlaying);
-    video.addEventListener('error', handleError);
-
-    return () => {
-      video.removeEventListener('timeupdate', handleTimeUpdate);
-      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      video.removeEventListener('play', handlePlay);
-      video.removeEventListener('pause', handlePause);
-      video.removeEventListener('waiting', handleWaiting);
-      video.removeEventListener('playing', handlePlaying);
-      video.removeEventListener('error', handleError);
-    };
-  }, []);
+    if (video) {
+      video.muted = isMuted;
+      video.volume = isMuted ? 0 : volume;
+    }
+  }, [volume, isMuted]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -187,7 +188,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
       if (isPlaying) {
         videoRef.current.pause();
       } else {
-        videoRef.current.play().catch(err => console.warn("Autoplay blocked:", err));
+        videoRef.current.play().catch(err => console.warn("Play blocked:", err));
       }
     }
   };
@@ -197,10 +198,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
     const timeSinceLastClick = now - lastClickTime.current;
     
     if (timeSinceLastClick < 300) {
-      // 双击 - 切换全屏
       toggleFullscreen();
     } else {
-      // 单击 - 切换播放/暂停
       togglePlay();
     }
     lastClickTime.current = now;
@@ -230,14 +229,16 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
       videoRef.current.removeAttribute('src');
       videoRef.current.load();
     }
+    autoplayAttempted.current = false;
     initializePlayer();
   };
 
   const handleMuteToggle = () => {
-    setIsMuted(!isMuted);
-    if (!isMuted) {
+    const newMuted = !isMuted;
+    setIsMuted(newMuted);
+    if (newMuted) {
       setVolume(0);
-    } else {
+    } else if (volume === 0) {
       setVolume(1);
     }
   };
