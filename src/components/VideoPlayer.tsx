@@ -35,6 +35,7 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
   const hlsRef = useRef<Hls | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   useImperativeHandle(ref, () => ({
     play: () => {
@@ -53,19 +54,35 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
     getVideoElement: () => videoRef.current,
   }));
 
+  const addDebugInfo = (info: string) => {
+    console.log('[VideoPlayer]', info);
+    setDebugInfo(prev => prev ? `${prev}\n${info}` : info);
+  };
+
   useEffect(() => {
-    if (!videoRef.current || !src) return;
+    if (!videoRef.current || !src) {
+      if (!src) {
+        setError('没有提供视频链接');
+      }
+      return;
+    }
 
     const video = videoRef.current;
     setIsLoading(true);
     setError(null);
+    setDebugInfo(null);
+    
+    addDebugInfo(`视频源: ${src}`);
+    addDebugInfo(`HLS.js版本: ${Hls.version || '未知'}`);
+    addDebugInfo(`HLS.js支持: ${Hls.isSupported() ? '是' : '否'}`);
 
     const handleCanPlay = () => {
+      addDebugInfo('视频可以播放了');
       setIsLoading(false);
       onCanPlay?.();
       if (autoPlay) {
         video.play().catch((e) => {
-          console.error('Auto play failed:', e);
+          addDebugInfo(`自动播放失败: ${e}`);
         });
       }
     };
@@ -83,12 +100,13 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
             errorMessage = '网络错误导致视频加载失败';
             break;
           case MediaError.MEDIA_ERR_DECODE:
-            errorMessage = '视频解码失败';
+            errorMessage = '视频解码失败，请检查视频编码格式';
             break;
           case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
-            errorMessage = '视频格式不支持';
+            errorMessage = '视频格式不支持，请确认是有效的M3U8链接';
             break;
         }
+        addDebugInfo(`原生错误代码: ${err.code}`);
       }
       
       setError(errorMessage);
@@ -101,10 +119,15 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
 
     const canPlayType = video.canPlayType('application/vnd.apple.mpegurl');
     const isNativeHls = canPlayType === 'probably' || canPlayType === 'maybe';
+    addDebugInfo(`原生HLS支持: ${isNativeHls ? '是' : '否'}`);
 
     if (isNativeHls) {
+      addDebugInfo('使用原生HLS播放');
       video.src = src;
+      video.load();
     } else if (Hls.isSupported()) {
+      addDebugInfo('使用HLS.js播放');
+      
       if (hlsRef.current) {
         hlsRef.current.destroy();
       }
@@ -112,38 +135,61 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
       const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: true,
+        debug: true,
+        enableSoftwareAES: false,
+        maxBufferLength: 30,
+        maxMaxBufferLength: 60,
       });
 
-      hls.loadSource(src);
-      hls.attachMedia(video);
-
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+        addDebugInfo(`Manifest解析成功, ${data.levels.length}个码率`);
         onLoadStart?.();
       });
 
       hls.on(Hls.Events.ERROR, (event, data) => {
+        addDebugInfo(`HLS错误: ${data.type} - ${data.details}`);
+        
         if (data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
-              setError('网络错误，请检查网络连接');
-              hls.destroy();
-              break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              setError('媒体错误，尝试恢复...');
+              setError(`网络错误: ${data.details}，请检查链接和网络连接`);
               hls.startLoad();
               break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              setError(`媒体错误: ${data.details}，尝试恢复...`);
+              hls.recoverMediaError();
+              break;
             default:
-              setError('播放出错');
+              setError(`播放错误: ${data.details}`);
               hls.destroy();
               break;
           }
-          onError?.(new Error(error || '播放出错'));
+          onError?.(new Error(error || data.details || '播放出错'));
         }
       });
 
+      hls.on(Hls.Events.FRAG_LOADING, () => {
+        setIsLoading(true);
+      });
+
+      hls.on(Hls.Events.FRAG_LOADED, () => {
+        setIsLoading(false);
+      });
+
+      try {
+        hls.loadSource(src);
+        hls.attachMedia(video);
+      } catch (e) {
+        addDebugInfo(`HLS初始化失败: ${e}`);
+        setError('HLS播放器初始化失败');
+        setIsLoading(false);
+      }
+
       hlsRef.current = hls;
     } else {
-      setError('您的浏览器不支持HLS播放');
+      addDebugInfo('浏览器不支持HLS播放');
+      setError('您的浏览器不支持HLS播放，请使用现代浏览器');
+      setIsLoading(false);
       onError?.(new Error('浏览器不支持HLS'));
     }
 
@@ -200,6 +246,7 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
         webkit-playsInline
         x5-video-player-type="h5"
         x5-video-player-fullscreen="true"
+        preload="auto"
       />
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
@@ -215,7 +262,15 @@ const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
             <svg className="w-12 h-12 mx-auto mb-3 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p className="text-gray-700 text-sm">{error}</p>
+            <p className="text-gray-700 text-sm mb-3">{error}</p>
+            {debugInfo && (
+              <details className="text-xs text-gray-500 text-left">
+                <summary className="cursor-pointer mb-2">调试信息</summary>
+                <pre className="whitespace-pre-wrap bg-gray-100 p-2 rounded text-left overflow-auto max-h-32">
+                  {debugInfo}
+                </pre>
+              </details>
+            )}
           </div>
         </div>
       )}

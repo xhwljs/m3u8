@@ -4,19 +4,42 @@ import { NeumorphicInput, NeumorphicButton, NeumorphicCard } from '@/components/
 import HistoryList from '@/components/HistoryList';
 import { useHistory } from '@/hooks/useHistory';
 
+const SAMPLE_M3U8 = [
+  { name: '测试流1 - Big Buck Bunny', url: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8' },
+  { name: '测试流2 - Apple HLS Demo', url: 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_fmp4/master.m3u8' },
+  { name: '测试流3 - HLS.js Test', url: 'https://cph-p2p-msl.akamaized.net/hls/live/2000341/test/master.m3u8' },
+];
+
 const HomePage: React.FC = () => {
   const [url, setUrl] = useState('');
   const navigate = useNavigate();
   const { history, addToHistory, removeFromHistory } = useHistory();
 
+  const isValidUrl = (str: string) => {
+    try {
+      const parsed = new URL(str);
+      return ['http:', 'https:'].includes(parsed.protocol);
+    } catch {
+      return false;
+    }
+  };
+
   const handlePlay = () => {
     const trimmedUrl = url.trim();
     if (!trimmedUrl) {
+      alert('请输入视频链接');
       return;
     }
 
-    if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
+    if (!isValidUrl(trimmedUrl)) {
+      alert('请输入有效的URL（以http://或https://开头）');
       return;
+    }
+
+    if (!trimmedUrl.includes('.m3u8')) {
+      if (!confirm('该链接看起来不是M3U8格式，是否继续尝试播放？')) {
+        return;
+      }
     }
 
     addToHistory(trimmedUrl);
@@ -57,14 +80,17 @@ const HomePage: React.FC = () => {
               <NeumorphicInput
                 value={url}
                 onChange={setUrl}
-                placeholder="请输入M3U8播放链接"
+                placeholder="请输入M3U8播放链接（以http://或https://开头）"
                 onKeyPress={handleKeyPress}
               />
+              {url && !isValidUrl(url) && (
+                <p className="text-red-500 text-xs mt-2">请输入有效的URL</p>
+              )}
             </div>
 
             <NeumorphicButton
               onClick={handlePlay}
-              disabled={!url.trim()}
+              disabled={!url.trim() || !isValidUrl(url)}
               fullWidth
               size="large"
             >
@@ -78,6 +104,34 @@ const HomePage: React.FC = () => {
             </NeumorphicButton>
           </div>
         </NeumorphicCard>
+
+        {history.length === 0 && (
+          <NeumorphicCard variant="raised" padding="medium" className="mb-6">
+            <h3 className="text-gray-600 text-sm font-medium mb-3 flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              快速测试
+            </h3>
+            <div className="space-y-2">
+              {SAMPLE_M3U8.map((sample, index) => (
+                <NeumorphicButton
+                  key={index}
+                  variant="secondary"
+                  size="small"
+                  fullWidth
+                  onClick={() => {
+                    setUrl(sample.url);
+                    addToHistory(sample.url);
+                    navigate(`/player?url=${encodeURIComponent(sample.url)}`);
+                  }}
+                >
+                  {sample.name}
+                </NeumorphicButton>
+              ))}
+            </div>
+          </NeumorphicCard>
+        )}
 
         <HistoryList
           history={history}
