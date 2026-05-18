@@ -14,9 +14,6 @@
 }
 
 html {
-  height: auto;
-  width: 100%;
-  min-height: 100%;
   margin: 0;
   padding: 0;
   -webkit-overflow-scrolling: touch;
@@ -32,24 +29,14 @@ html {
 }
 
 body {
-  height: auto;
-  width: 100%;
-  min-height: 100%;
   margin: 0;
   padding: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
 }
 
 #root {
-  height: auto;
-  min-height: 100%;
-  width: 100%;
   margin: 0;
   padding: 0;
-  overflow-y: visible;
-  overflow-x: hidden;
 }
 
 * {
