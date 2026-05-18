@@ -14,8 +14,9 @@
 }
 
 html {
-  height: 100%;
+  height: auto;
   width: 100%;
+  min-height: 100%;
   margin: 0;
   padding: 0;
   -webkit-overflow-scrolling: touch;
@@ -31,8 +32,9 @@ html {
 }
 
 body {
-  height: 100%;
+  height: auto;
   width: 100%;
+  min-height: 100%;
   margin: 0;
   padding: 0;
   overflow-y: auto;
@@ -41,11 +43,12 @@ body {
 }
 
 #root {
+  height: auto;
   min-height: 100%;
   width: 100%;
   margin: 0;
   padding: 0;
-  overflow-y: auto;
+  overflow-y: visible;
   overflow-x: hidden;
 }
 

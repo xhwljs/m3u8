@@ -149,7 +149,7 @@ export const HomePage: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${theme === 'dark' ? 'bg-gray-900' : 'bg-[#e8ecf1]'} pb-safe-bottom`}>
+    <div className={`min-h-full transition-colors duration-300 ${theme === 'dark' ? 'bg-gray-900' : 'bg-[#e8ecf1]'} pb-safe-bottom`}>
       <div className="sticky top-0 z-20 px-4 py-3 flex items-center justify-between bg-inherit backdrop-blur-md border-b border-gray-200/50 dark:border-gray-800">
         <div className={`text-lg sm:text-xl font-bold tracking-wider ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
           M3U8 播放器
