@@ -10,6 +10,7 @@ export const PlayerPage: React.FC = () => {
   const navigate = useNavigate();
   const [isLandscape, setIsLandscape] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
   const url = searchParams.get('url');
 
@@ -24,10 +25,20 @@ export const PlayerPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // 模拟加载完成，让过渡更自然
+    const savedTheme = localStorage.getItem('m3u8_player_theme');
+    setTheme(savedTheme === 'dark' ? 'dark' : 'light');
+    
     const timer = setTimeout(() => setIsLoading(false), 100);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
 
   const getVideoTitle = useCallback((videoUrl: string) => {
     try {
@@ -40,24 +51,24 @@ export const PlayerPage: React.FC = () => {
 
   if (!url) {
     return (
-      <div className="min-h-screen bg-[#e8ecf1] flex items-center justify-center p-6">
+      <div className={`min-h-screen flex items-center justify-center p-6 ${theme === 'dark' ? 'bg-gray-900' : 'bg-[#e8ecf1]'}`}>
         <div className="text-center">
-          <p className="text-gray-600 mb-4">无效的播放链接</p>
-          <NeumorphicButton onClick={() => navigate('/')}>返回首页</NeumorphicButton>
+          <p className={`mb-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>无效的播放链接</p>
+          <NeumorphicButton onClick={() => navigate('/')} theme={theme}>返回首页</NeumorphicButton>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#e8ecf1] flex flex-col">
+    <div className={`min-h-screen flex flex-col ${theme === 'dark' ? 'bg-gray-900' : 'bg-[#e8ecf1]'}`}>
       {!isLandscape && (
-        <div className="p-4 flex items-center justify-between bg-[#e8ecf1] z-10 flex-shrink-0">
-          <NeumorphicButton onClick={() => navigate('/')} className="p-3">
-            <ArrowLeft size={24} className="text-gray-600" />
+        <div className={`p-4 flex items-center justify-between z-10 flex-shrink-0 ${theme === 'dark' ? 'bg-gray-900' : 'bg-[#e8ecf1]'}`}>
+          <NeumorphicButton onClick={() => navigate('/')} className="p-3" theme={theme}>
+            <ArrowLeft size={24} className={theme === 'dark' ? 'text-gray-300' : 'text-gray-600'} />
           </NeumorphicButton>
           <div className="flex-1 px-4 overflow-hidden">
-             <h2 className="text-gray-700 font-medium truncate text-center flex items-center justify-center gap-2">
+             <h2 className={`font-medium truncate text-center flex items-center justify-center gap-2 ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>
                <Video size={18} className="text-[#6c63ff]" />
                {getVideoTitle(decodeURIComponent(url))}
              </h2>
@@ -72,14 +83,14 @@ export const PlayerPage: React.FC = () => {
 
       {!isLandscape && (
         <div className="p-4 flex-1 overflow-hidden">
-          <NeumorphicCard className="h-full p-5">
+          <NeumorphicCard className="h-full p-5" theme={theme}>
             <div className="flex items-center gap-2 mb-3">
               <div className="w-2 h-2 bg-[#6c63ff] rounded-full animate-pulse" />
-              <h3 className="text-gray-700 font-medium">播放信息</h3>
+              <h3 className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-700'}`}>播放信息</h3>
             </div>
-            <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-              <p className="text-gray-500 text-xs mb-2">播放链接</p>
-              <p className="text-gray-700 text-sm break-all font-mono">
+            <div className={`rounded-xl p-4 ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-50'} ${theme === 'dark' ? 'border border-gray-700' : 'border border-gray-100'}`}>
+              <p className={`text-xs mb-2 ${theme === 'dark' ? 'text-gray-500' : 'text-gray-500'}`}>播放链接</p>
+              <p className={`text-sm break-all font-mono ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
                 {decodeURIComponent(url)}
               </p>
             </div>

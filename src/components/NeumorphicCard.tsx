@@ -1,35 +1,27 @@
-import React, { ReactNode } from 'react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import React from 'react';
 
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+interface NeumorphicCardProps extends React.HTMLAttributes<HTMLDivElement> {
+  theme?: 'light' | 'dark';
 }
 
-interface NeumorphicCardProps {
-  children: ReactNode;
-  className?: string;
-  inset?: boolean;
-  onClick?: () => void;
-}
-
-export const NeumorphicCard: React.FC<NeumorphicCardProps> = ({ 
-  children, 
-  className, 
-  inset = false,
-  onClick 
+export const NeumorphicCard: React.FC<NeumorphicCardProps> = ({
+  theme = 'light',
+  children,
+  className = '',
+  ...props
 }) => {
   return (
     <div
-      onClick={onClick}
-      className={cn(
-        "bg-[#e8ecf1] rounded-2xl p-4 transition-all duration-300",
-        inset 
-          ? "shadow-[inset_3px_3px_8px_#c4c9d0,inset_-3px_-3px_8px_#ffffff]"
-          : "shadow-[5px_5px_15px_#c4c9d0,-5px_-5px_15px_#ffffff]",
-        onClick && "cursor-pointer active:scale-[0.98]",
-        className
-      )}
+      {...props}
+      className={`
+        p-4 rounded-2xl
+        transition-all duration-300
+        ${theme === 'dark' 
+          ? 'bg-gray-800 border border-gray-700' 
+          : 'bg-white shadow-[5px_5px_15px_#c4c9d0,-5px_-5px_15px_#ffffff]'
+        }
+        ${className}
+      `}
     >
       {children}
     </div>
