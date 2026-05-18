@@ -238,6 +238,21 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
     }
   };
 
+  const togglePictureInPicture = async () => {
+    const video = videoRef.current;
+    if (!video) return;
+    
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else {
+        await video.requestPictureInPicture();
+      }
+    } catch (err) {
+      console.warn('Picture-in-Picture not supported:', err);
+    }
+  };
+
   const retry = () => {
     if (videoRef.current) {
       videoRef.current.pause();
@@ -275,21 +290,24 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
 
       {state === 'loading' && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
-          <Loader2 className="w-10 h-10 text-white animate-spin" />
+          <div className="flex flex-col items-center gap-3">
+            <Loader2 className="w-12 h-12 text-white animate-spin" />
+            <p className="text-white/80 text-sm">正在加载...</p>
+          </div>
         </div>
       )}
 
       {state === 'error' && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-20 p-6 text-center">
-          <AlertCircle className="w-12 h-12 text-red-400 mb-4" />
+          <AlertCircle className="w-14 h-14 text-red-400 mb-4" />
           <p className="text-white text-lg font-medium mb-2">播放失败</p>
-          <p className="text-gray-400 text-sm mb-4">{errorMsg}</p>
+          <p className="text-gray-400 text-sm mb-6">{errorMsg}</p>
           <button
             onClick={retry}
-            className="flex items-center gap-2 bg-[#6c63ff] hover:bg-[#5a52e6] text-white px-6 py-3 rounded-full transition-colors"
+            className="flex items-center gap-2 bg-[#6c63ff] hover:bg-[#5a52e6] text-white px-8 py-3 rounded-full transition-colors shadow-lg"
           >
             <RefreshCw size={18} />
-            重试
+            重试播放
           </button>
         </div>
       )}
@@ -301,6 +319,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
         onPlayPause={togglePlay}
         onSeek={seek}
         onFullscreen={toggleFullscreen}
+        onPictureInPicture={togglePictureInPicture}
         isFullscreen={isFullscreen}
         volume={volume}
         isMuted={isMuted}

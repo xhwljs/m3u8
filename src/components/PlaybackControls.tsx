@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Play, Pause, Maximize, Minimize, Volume2, VolumeX, Rewind, FastForward, Gauge } from 'lucide-react';
+import { Play, Pause, Maximize, Minimize, Volume2, VolumeX, Rewind, FastForward, Gauge, PictureInPicture } from 'lucide-react';
 
 interface PlaybackControlsProps {
   isPlaying: boolean;
@@ -8,6 +8,7 @@ interface PlaybackControlsProps {
   onPlayPause: () => void;
   onSeek: (time: number) => void;
   onFullscreen: () => void;
+  onPictureInPicture: () => void;
   isFullscreen: boolean;
   volume: number;
   isMuted: boolean;
@@ -33,6 +34,7 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
   onPlayPause,
   onSeek,
   onFullscreen,
+  onPictureInPicture,
   isFullscreen,
   volume,
   isMuted,
@@ -178,8 +180,15 @@ export const PlaybackControls: React.FC<PlaybackControlsProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-center gap-4">
-                {/* 播放速度控制 */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={onPictureInPicture}
+                  className="min-h-[44px] min-w-[44px] flex items-center justify-center text-white hover:scale-110 transition-transform"
+                  title="画中画"
+                >
+                  <PictureInPicture size={20} />
+                </button>
+
                 <div className="relative">
                   <button
                     onClick={toggleSpeedMenu}
