@@ -34,9 +34,6 @@ const THEMES: ThemeColor[] = [
   { id: 'light-green', name: '浅绿', primary: '#10b981', bg: '#d1fae5', cardBg: '#ffffff', text: '#065f46', textSecondary: '#059669', border: '#a7f3d0' },
   { id: 'light-orange', name: '浅橙', primary: '#f59e0b', bg: '#fffbeb', cardBg: '#ffffff', text: '#92400e', textSecondary: '#d97706', border: '#fef3c7' },
   { id: 'light-pink', name: '浅粉', primary: '#ec4899', bg: '#fdf2f8', cardBg: '#ffffff', text: '#831843', textSecondary: '#be185d', border: '#fce7f3' },
-  { id: 'dark', name: '深灰', primary: '#818cf8', bg: '#111827', cardBg: '#1f2937', text: '#f9fafb', textSecondary: '#9ca3af', border: '#374151' },
-  { id: 'dark-blue', name: '深蓝', primary: '#60a5fa', bg: '#0f172a', cardBg: '#1e293b', text: '#f1f5f9', textSecondary: '#94a3b8', border: '#334155' },
-  { id: 'dark-purple', name: '深紫', primary: '#a78bfa', bg: '#1a1625', cardBg: '#2d2640', text: '#f5f3ff', textSecondary: '#c4b5fd', border: '#4c3d6c' },
 ];
 
 const STORAGE_KEY = 'm3u8_player_history';
@@ -170,10 +167,7 @@ export const HomePage: React.FC = () => {
     return filename?.replace(/\.[^/.]+$/, '') || videoUrl;
   };
 
-  const isDark = currentTheme.id.startsWith('dark');
-  const neumorphicShadow = isDark 
-    ? 'shadow-[5px_5px_15px_rgba(0,0,0,0.4),-5px_-5px_15px_rgba(255,255,255,0.05)]'
-    : 'shadow-[5px_5px_15px_#c4c9d0,-5px_-5px_15px_#ffffff]';
+  const neumorphicShadow = 'shadow-[5px_5px_15px_#c4c9d0,-5px_-5px_15px_#ffffff]';
 
   return (
     <div style={{ backgroundColor: currentTheme.bg, minHeight: '100vh' }} className="transition-colors duration-300 pb-safe-bottom">
@@ -253,7 +247,7 @@ export const HomePage: React.FC = () => {
             onChange={(e) => setUrl(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handlePlay()}
             autoComplete="off"
-            theme={isDark ? 'dark' : 'light'}
+            theme="light"
           />
           
           <div className="flex gap-3">
@@ -262,7 +256,7 @@ export const HomePage: React.FC = () => {
               onClick={() => handlePlay()} 
               disabled={!url.trim()}
               className="flex-1 min-h-[56px]"
-              theme={isDark ? 'dark' : 'light'}
+              theme="light"
             >
               <Play size={20} className="mr-2 fill-current" />
               开始播放
@@ -289,12 +283,12 @@ export const HomePage: React.FC = () => {
             <NeumorphicCard 
               key={idx} 
               className="text-center p-4"
-              theme={isDark ? 'dark' : 'light'}
+              theme="light"
             >
               <div 
                 className="inline-flex items-center justify-center w-10 h-10 rounded-full mb-2"
                 style={{ 
-                  backgroundColor: isDark ? `${currentTheme.primary}20` : `${currentTheme.primary}15`, 
+                  backgroundColor: `${currentTheme.primary}15`, 
                   color: currentTheme.primary 
                 }}
               >
@@ -320,7 +314,7 @@ export const HomePage: React.FC = () => {
               key={idx} 
               onClick={() => handlePlay(demo.url)}
               className="cursor-pointer hover:scale-[1.02] transition-transform active:scale-98"
-              theme={isDark ? 'dark' : 'light'}
+              theme="light"
             >
               <div className="flex items-center">
                 <div 
@@ -339,7 +333,7 @@ export const HomePage: React.FC = () => {
                     <span 
                       className="text-xs px-2 py-0.5 rounded-full"
                       style={{ 
-                        backgroundColor: isDark ? `${currentTheme.primary}20` : `${currentTheme.primary}10`, 
+                        backgroundColor: `${currentTheme.primary}10`, 
                         color: currentTheme.textSecondary 
                       }}
                     >
@@ -374,7 +368,7 @@ export const HomePage: React.FC = () => {
                   <NeumorphicCard 
                     key={idx} 
                     className="cursor-pointer hover:scale-[1.02] transition-transform active:scale-98"
-                    theme={isDark ? 'dark' : 'light'}
+                    theme="light"
                   >
                     <div className="flex items-center justify-between">
                       <div 
@@ -392,7 +386,7 @@ export const HomePage: React.FC = () => {
                         onClick={() => removeFromFavorites(favorite.url)}
                         className="p-2 rounded-lg transition-colors active:scale-95"
                         style={{ 
-                          color: isDark ? '#f87171' : '#ef4444' 
+                          color: '#ef4444' 
                         }}
                       >
                         <StarOff size={16} />
@@ -410,7 +404,7 @@ export const HomePage: React.FC = () => {
             history={history} 
             onSelect={handlePlay}
             onRemove={removeFromHistory}
-            theme={isDark ? 'dark' : 'light'}
+            theme="light"
           />
         </div>
 
@@ -453,108 +447,51 @@ export const HomePage: React.FC = () => {
             </div>
             
             <div className="p-5">
-              <div className="mb-5">
-                <p style={{ color: currentTheme.textSecondary }} className="text-sm font-medium mb-3 px-1">
-                  浅色主题
-                </p>
-                <div className="grid grid-cols-5 gap-2.5">
-                  {THEMES.filter(t => !t.id.startsWith('dark')).map((theme) => (
-                    <button
-                      key={theme.id}
-                      onClick={() => { setCurrentTheme(theme); setShowThemeModal(false); }}
-                      className="group relative aspect-square rounded-xl transition-all duration-200 hover:scale-105 active:scale-95"
-                      style={{ 
-                        backgroundColor: theme.bg,
-                        boxShadow: currentTheme.id === theme.id 
-                          ? `0 0 0 3px ${theme.primary}, 0 4px 12px rgba(0,0,0,0.15)` 
-                          : '0 2px 8px rgba(0,0,0,0.1)'
-                      }}
-                    >
-                      <div className="w-full h-full rounded-xl flex flex-col items-center justify-center p-2">
-                        <div 
-                          className="w-7 h-7 rounded-xl transition-transform duration-200 group-hover:scale-110"
-                          style={{ 
-                            background: `linear-gradient(135deg, ${theme.primary}, ${theme.primary}cc)` 
-                          }}
-                        />
+              <div className="grid grid-cols-5 gap-3">
+                {THEMES.map((theme) => (
+                  <button
+                    key={theme.id}
+                    onClick={() => { setCurrentTheme(theme); setShowThemeModal(false); }}
+                    className="group relative aspect-square rounded-xl transition-all duration-200 hover:scale-105 active:scale-95"
+                    style={{ 
+                      backgroundColor: theme.bg,
+                      boxShadow: currentTheme.id === theme.id 
+                        ? `0 0 0 3px ${theme.primary}, 0 4px 12px rgba(0,0,0,0.15)` 
+                        : '0 2px 8px rgba(0,0,0,0.1)'
+                    }}
+                  >
+                    <div className="w-full h-full rounded-xl flex flex-col items-center justify-center p-2">
+                      <div 
+                        className="w-8 h-8 rounded-xl transition-transform duration-200 group-hover:scale-110"
+                        style={{ 
+                          background: `linear-gradient(135deg, ${theme.primary}, ${theme.primary}cc)` 
+                        }}
+                      />
+                    </div>
+                    {currentTheme.id === theme.id && (
+                      <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center"
+                        style={{ backgroundColor: theme.primary }}
+                      >
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="white">
+                          <path d="M20 6L9 17l-5-5"/>
+                        </svg>
                       </div>
-                      {currentTheme.id === theme.id && (
-                        <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center"
-                          style={{ backgroundColor: theme.primary }}
-                        >
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="white">
-                            <path d="M20 6L9 17l-5-5"/>
-                          </svg>
-                        </div>
-                      )}
-                    </button>
-                  ))}
-                </div>
-                <div className="mt-2 grid grid-cols-5 gap-2.5">
-                  {THEMES.filter(t => !t.id.startsWith('dark')).map((theme) => (
-                    <p 
-                      key={`name-${theme.id}`}
-                      className="text-center text-xs font-medium"
-                      style={{ 
-                        color: currentTheme.id === theme.id ? currentTheme.primary : currentTheme.textSecondary 
-                      }}
-                    >
-                      {theme.name}
-                    </p>
-                  ))}
-                </div>
+                    )}
+                  </button>
+                ))}
               </div>
-
-              <div>
-                <p style={{ color: currentTheme.textSecondary }} className="text-sm font-medium mb-3 px-1">
-                  深色主题
-                </p>
-                <div className="grid grid-cols-3 gap-2.5">
-                  {THEMES.filter(t => t.id.startsWith('dark')).map((theme) => (
-                    <button
-                      key={theme.id}
-                      onClick={() => { setCurrentTheme(theme); setShowThemeModal(false); }}
-                      className="group relative aspect-square rounded-xl transition-all duration-200 hover:scale-105 active:scale-95"
-                      style={{ 
-                        backgroundColor: theme.bg,
-                        boxShadow: currentTheme.id === theme.id 
-                          ? `0 0 0 3px ${theme.primary}, 0 4px 12px rgba(0,0,0,0.3)` 
-                          : '0 2px 8px rgba(0,0,0,0.2)'
-                      }}
-                    >
-                      <div className="w-full h-full rounded-xl flex flex-col items-center justify-center p-2">
-                        <div 
-                          className="w-8 h-8 rounded-xl transition-transform duration-200 group-hover:scale-110"
-                          style={{ 
-                            background: `linear-gradient(135deg, ${theme.primary}, ${theme.primary}cc)` 
-                          }}
-                        />
-                      </div>
-                      {currentTheme.id === theme.id && (
-                        <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center"
-                          style={{ backgroundColor: theme.primary }}
-                        >
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="white">
-                            <path d="M20 6L9 17l-5-5"/>
-                          </svg>
-                        </div>
-                      )}
-                    </button>
-                  ))}
-                </div>
-                <div className="mt-2 grid grid-cols-3 gap-2.5">
-                  {THEMES.filter(t => t.id.startsWith('dark')).map((theme) => (
-                    <p 
-                      key={`name-${theme.id}`}
-                      className="text-center text-xs font-medium"
-                      style={{ 
-                        color: currentTheme.id === theme.id ? currentTheme.primary : currentTheme.textSecondary 
-                      }}
-                    >
-                      {theme.name}
-                    </p>
-                  ))}
-                </div>
+              <div className="mt-2.5 grid grid-cols-5 gap-3">
+                {THEMES.map((theme) => (
+                  <p 
+                    key={`name-${theme.id}`}
+                    className="text-center text-xs font-medium"
+                    style={{ 
+                      color: currentTheme.id === theme.id ? currentTheme.primary : currentTheme.textSecondary 
+                    }}
+                  >
+                    {theme.name}
+                  </p>
+                ))}
               </div>
             </div>
 
