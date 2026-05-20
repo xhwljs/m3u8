@@ -423,68 +423,149 @@ export const HomePage: React.FC = () => {
 
       {showThemeModal && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 animate-fade-in"
+          style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
           onClick={() => setShowThemeModal(false)}
         >
           <div 
-            className="w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl"
+            className="w-full max-w-md rounded-2xl overflow-hidden shadow-2xl animate-slide-up"
             style={{ backgroundColor: currentTheme.cardBg }}
             onClick={e => e.stopPropagation()}
           >
             <div 
-              className="p-6"
+              className="p-5"
               style={{ borderBottom: `1px solid ${currentTheme.border}` }}
             >
-              <h2 style={{ color: currentTheme.text }} className="text-xl font-bold text-center">
-                选择主题
-              </h2>
+              <div className="flex items-center justify-between">
+                <h2 style={{ color: currentTheme.text }} className="text-lg font-bold">
+                  主题颜色
+                </h2>
+                <button
+                  onClick={() => setShowThemeModal(false)}
+                  className="p-2 rounded-full transition-colors"
+                  style={{ backgroundColor: `${currentTheme.primary}10`, color: currentTheme.textSecondary }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
             </div>
-            <div className="p-6">
-              <div className="grid grid-cols-4 gap-3">
-                {THEMES.map((theme) => (
-                  <button
-                    key={theme.id}
-                    onClick={() => { setCurrentTheme(theme); setShowThemeModal(false); }}
-                    className={`aspect-square rounded-xl transition-all hover:scale-105 active:scale-95 ${
-                      currentTheme.id === theme.id ? 'ring-2 ring-offset-2' : ''
-                    }`}
-                    style={{ 
-                      backgroundColor: theme.bg, 
-                      border: currentTheme.id === theme.id ? `3px solid ${theme.primary}` : `2px solid ${theme.border}`
-                    }}
-                    title={theme.name}
-                  >
-                    <div 
-                      className="w-full h-full rounded-xl flex items-center justify-center"
+            
+            <div className="p-5">
+              <div className="mb-5">
+                <p style={{ color: currentTheme.textSecondary }} className="text-sm font-medium mb-3 px-1">
+                  浅色主题
+                </p>
+                <div className="grid grid-cols-5 gap-2.5">
+                  {THEMES.filter(t => !t.id.startsWith('dark')).map((theme) => (
+                    <button
+                      key={theme.id}
+                      onClick={() => { setCurrentTheme(theme); setShowThemeModal(false); }}
+                      className="group relative aspect-square rounded-xl transition-all duration-200 hover:scale-105 active:scale-95"
+                      style={{ 
+                        backgroundColor: theme.bg,
+                        boxShadow: currentTheme.id === theme.id 
+                          ? `0 0 0 3px ${theme.primary}, 0 4px 12px rgba(0,0,0,0.15)` 
+                          : '0 2px 8px rgba(0,0,0,0.1)'
+                      }}
                     >
-                      <div 
-                        className="w-6 h-6 rounded-full"
-                        style={{ backgroundColor: theme.primary }}
-                      />
-                    </div>
-                  </button>
-                ))}
+                      <div className="w-full h-full rounded-xl flex flex-col items-center justify-center p-2">
+                        <div 
+                          className="w-7 h-7 rounded-xl transition-transform duration-200 group-hover:scale-110"
+                          style={{ 
+                            background: `linear-gradient(135deg, ${theme.primary}, ${theme.primary}cc)` 
+                          }}
+                        />
+                      </div>
+                      {currentTheme.id === theme.id && (
+                        <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center"
+                          style={{ backgroundColor: theme.primary }}
+                        >
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="white">
+                            <path d="M20 6L9 17l-5-5"/>
+                          </svg>
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-2 grid grid-cols-5 gap-2.5">
+                  {THEMES.filter(t => !t.id.startsWith('dark')).map((theme) => (
+                    <p 
+                      key={`name-${theme.id}`}
+                      className="text-center text-xs font-medium"
+                      style={{ 
+                        color: currentTheme.id === theme.id ? currentTheme.primary : currentTheme.textSecondary 
+                      }}
+                    >
+                      {theme.name}
+                    </p>
+                  ))}
+                </div>
               </div>
-              <div className="mt-4 grid grid-cols-4 gap-3">
-                {THEMES.map((theme) => (
-                  <p 
-                    key={`name-${theme.id}`}
-                    className="text-center text-xs truncate"
-                    style={{ color: currentTheme.textSecondary }}
-                  >
-                    {theme.name}
-                  </p>
-                ))}
+
+              <div>
+                <p style={{ color: currentTheme.textSecondary }} className="text-sm font-medium mb-3 px-1">
+                  深色主题
+                </p>
+                <div className="grid grid-cols-3 gap-2.5">
+                  {THEMES.filter(t => t.id.startsWith('dark')).map((theme) => (
+                    <button
+                      key={theme.id}
+                      onClick={() => { setCurrentTheme(theme); setShowThemeModal(false); }}
+                      className="group relative aspect-square rounded-xl transition-all duration-200 hover:scale-105 active:scale-95"
+                      style={{ 
+                        backgroundColor: theme.bg,
+                        boxShadow: currentTheme.id === theme.id 
+                          ? `0 0 0 3px ${theme.primary}, 0 4px 12px rgba(0,0,0,0.3)` 
+                          : '0 2px 8px rgba(0,0,0,0.2)'
+                      }}
+                    >
+                      <div className="w-full h-full rounded-xl flex flex-col items-center justify-center p-2">
+                        <div 
+                          className="w-8 h-8 rounded-xl transition-transform duration-200 group-hover:scale-110"
+                          style={{ 
+                            background: `linear-gradient(135deg, ${theme.primary}, ${theme.primary}cc)` 
+                          }}
+                        />
+                      </div>
+                      {currentTheme.id === theme.id && (
+                        <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center"
+                          style={{ backgroundColor: theme.primary }}
+                        >
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="white">
+                            <path d="M20 6L9 17l-5-5"/>
+                          </svg>
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-2 grid grid-cols-3 gap-2.5">
+                  {THEMES.filter(t => t.id.startsWith('dark')).map((theme) => (
+                    <p 
+                      key={`name-${theme.id}`}
+                      className="text-center text-xs font-medium"
+                      style={{ 
+                        color: currentTheme.id === theme.id ? currentTheme.primary : currentTheme.textSecondary 
+                      }}
+                    >
+                      {theme.name}
+                    </p>
+                  ))}
+                </div>
               </div>
             </div>
-            <div style={{ backgroundColor: currentTheme.bg }} className="p-4">
+
+            <div className="px-5 pb-5">
               <button
                 onClick={() => setShowThemeModal(false)}
-                className="w-full py-3 rounded-xl font-medium transition-colors"
+                className="w-full py-3.5 rounded-xl font-medium transition-all duration-200 hover:opacity-90 active:scale-[0.98]"
                 style={{ 
-                  backgroundColor: currentTheme.primary, 
-                  color: '#ffffff' 
+                  background: `linear-gradient(135deg, ${currentTheme.primary}, ${currentTheme.primary}dd)`, 
+                  color: '#ffffff',
+                  boxShadow: `0 4px 16px ${currentTheme.primary}40`
                 }}
               >
                 确定
