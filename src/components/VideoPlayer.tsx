@@ -90,10 +90,46 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
       });
 
       hls.on(Hls.Events.ERROR, (event, data) => {
+        console.error('HLS Error:', data);
+        
         if (data.fatal) {
-          console.error('HLS Fatal Error:', data);
-          setState('error');
-          setErrorMsg('视频加载失败，请检查链接是否有效');
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              console.log('Fatal network error, trying to recover...');
+              if (retryCountRef.current < maxRetries) {
+                retryCountRef.current += 1;
+                setRetryCount(retryCountRef.current);
+                setTimeout(() => {
+                  hls.startLoad();
+                }, 1000);
+              } else {
+                setState('error');
+                setErrorMsg('网络错误，无法加载视频，请检查网络连接后重试');
+              }
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              console.log('Fatal media error, trying to recover...');
+              if (retryCountRef.current < maxRetries) {
+                retryCountRef.current += 1;
+                setRetryCount(retryCountRef.current);
+                setTimeout(() => {
+                  hls.recoverMediaError();
+                }, 1000);
+              } else {
+                setState('error');
+                setErrorMsg('媒体加载失败，请尝试其他视频源');
+              }
+              break;
+            default:
+              setState('error');
+              setErrorMsg('视频加载失败，请检查链接是否有效');
+              break;
+          }
+        } else {
+          if (retryCountRef.current < maxRetries) {
+            retryCountRef.current += 1;
+            setRetryCount(retryCountRef.current);
+          }
         }
       });
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
@@ -254,6 +290,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
   };
 
   const retry = () => {
+    if (retryCountRef.current >= maxRetries) {
+      retryCountRef.current = 0;
+      setRetryCount(0);
+    }
     if (videoRef.current) {
       videoRef.current.pause();
       videoRef.current.removeAttribute('src');
@@ -261,6 +301,21 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
     }
     autoplayAttempted.current = false;
     initializePlayer();
+  };
+
+  const maxRetries = 3;
+  const [retryCount, setRetryCount] = useState(0);
+  const retryCountRef = useRef(0);
+
+  const handleRetryWithCount = () => {
+    if (retryCountRef.current < maxRetries) {
+      retryCountRef.current += 1;
+      setRetryCount(retryCountRef.current);
+      retry();
+    } else {
+      setState('error');
+      setErrorMsg('多次尝试后仍无法播放，请检查链接是否有效或网络连接');
+    }
   };
 
   const handleMuteToggle = () => {
@@ -298,17 +353,50 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ url }) => {
       )}
 
       {state === 'error' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-20 p-6 text-center">
-          <AlertCircle className="w-14 h-14 text-red-400 mb-4" />
-          <p className="text-white text-lg font-medium mb-2">播放失败</p>
-          <p className="text-gray-400 text-sm mb-6">{errorMsg}</p>
-          <button
-            onClick={retry}
-            className="flex items-center gap-2 bg-[#6c63ff] hover:bg-[#5a52e6] text-white px-8 py-3 rounded-full transition-colors shadow-lg"
-          >
-            <RefreshCw size={18} />
-            重试播放
-          </button>
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-black via-gray-900 to-black z-20 p-6 text-center">
+          <div className="mb-6">
+            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-red-500/10 flex items-center justify-center">
+              <AlertCircle className="w-12 h-12 text-red-400" />
+            </div>
+            <h3 className="text-white text-xl font-bold mb-2">播放失败</h3>
+            <p className="text-gray-400 text-sm mb-4 max-w-xs mx-auto">{errorMsg}</p>
+            {retryCount > 0 && (
+              <div className="mb-4 px-4 py-2 rounded-full bg-yellow-500/10 border border-yellow-500/20 inline-block">
+                <p className="text-yellow-400 text-xs">
+                  已自动重试 {retryCount} / {maxRetries} 次
+                </p>
+              </div>
+            )}
+          </div>
+          
+          <div className="w-full max-w-xs space-y-3">
+            <button
+              onClick={handleRetryWithCount}
+              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#6c63ff] to-[#8b5cf6] hover:from-[#5a52e6] hover:to-[#7c3aed] text-white px-6 py-3.5 rounded-xl transition-all shadow-lg hover:shadow-xl active:scale-[0.98]"
+            >
+              <RefreshCw size={18} className={retryCount > 0 ? 'animate-spin' : ''} />
+              <span className="font-medium">
+                {retryCount > 0 ? `重试 (${retryCount}/${maxRetries})` : '重试播放'}
+              </span>
+            </button>
+            
+            <button
+              onClick={retry}
+              className="w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-xl transition-all"
+            >
+              <RefreshCw size={16} />
+              <span className="text-sm">重新加载</span>
+            </button>
+          </div>
+          
+          <div className="mt-6 px-4 py-3 rounded-xl bg-white/5 max-w-xs">
+            <p className="text-gray-500 text-xs mb-2">常见问题：</p>
+            <ul className="text-gray-400 text-xs text-left space-y-1">
+              <li>• 链接是否以 .m3u8 结尾</li>
+              <li>• 网络连接是否稳定</li>
+              <li>• 视频源是否可用</li>
+            </ul>
+          </div>
         </div>
       )}
 
